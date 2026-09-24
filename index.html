@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#8F6FB6" />
+  <meta name="description" content="LoveraAI · 智能体聊天：自己设定人设、上传头像与自定义主题。" />
+  <meta name="application-name" content="LoveraAI" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LoveraAI" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>LoveraAI · 智能体聊天</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/favicon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+<script>
+/* 老内核兜底：实测 flex 的 gap 支不支持（Chrome 84 才有）。ES5 写法。 */
+(function () {
+  try {
+    var host = document.body || document.documentElement;
+    var box = document.createElement("div");
+    box.style.cssText = "display:flex;position:absolute;left:-9999px;top:0;gap:10px;";
+    box.innerHTML = "<i style='display:block;width:10px;height:1px'></i>" +
+                    "<i style='display:block;width:10px;height:1px'></i>";
+    host.appendChild(box);
+    var ok = box.getBoundingClientRect().width >= 29.5;
+    host.removeChild(box);
+    window.__loveraFlexGap = ok;
+    if (!ok) {
+      var de = document.documentElement;
+      de.className = (de.className ? de.className + " " : "") + "nogap";
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+  <!-- 壁纸层 -->
+  <div id="wallpaper"></div>
+
+  <div id="app">
+    <!-- 启动页（显示品牌封面图，与原图同风格） -->
+    <div id="splash" class="splash"></div>
+
+    <!-- 主布局 -->
+    <div class="layout">
+      <!-- 侧边栏 -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <span class="brand-name">LoveraAI</span>
+          <button id="momentsBtn" class="icon-btn" title="AI 朋友圈">◎</button>
+          <button id="speakBtn" class="icon-btn" title="让他开口说话（用手机自带语音）">🔈</button>
+          <button id="settingsBtn" class="icon-btn" title="设置">⚙</button>
+        </div>
+        <button id="newAgentBtn" class="primary-btn">＋ 新建智能体</button>
+        <div class="side-tools">
+          <button id="batchBtn" class="mid-btn ghost">批量删除</button>
+          <button id="delSelectedBtn" class="mid-btn" hidden>删除选中</button>
+          <button id="cancelBatchBtn" class="mid-btn ghost" hidden>取消</button>
+        </div>
+        <div class="agent-list" id="agentList"></div>
+      </aside>
+
+      <!-- 聊天区 -->
+      <div class="chatpane" id="chatpanePane">
+        <header class="chat-header">
+          <button id="backBtn" class="icon-btn back" title="返回列表">‹</button>
+          <div id="chatAvatar" class="avatar-sm"></div>
+          <div class="chat-title">
+            <div id="chatName" class="chat-name"></div>
+            <div id="chatSub" class="chat-sub"></div>
+          </div>
+          <div class="chat-actions">
+            <button id="editBtn" class="ghost-btn">编辑</button>
+            <button id="clearBtn" class="ghost-btn">清空</button>
+          </div>
+        </header>
+        <div class="messages" id="messages"></div>
+        <div class="composer">
+          <textarea id="input" rows="2" placeholder="给智能体发消息…（Enter 发送，Shift+Enter 换行）"></textarea>
+          <button id="imgBtn" class="img-btn" title="发图片">🖼</button>
+          <button id="sendBtn" class="send-btn">发送</button>
+          <button id="stopBtn" class="stop-btn" hidden>停止</button>
+          <input type="file" id="chatImgInput" accept="image/*" hidden />
+          <div class="composer-hint">Enter 发送 · Shift+Enter 换行 · 🖼 发图片（输入框里的话会当配文）</div>
+        </div>
+      </div>
+
+      <!-- AI 朋友圈视图 -->
+      <div class="moments" id="momentsView" hidden>
+        <header class="moments-header">
+          <button id="momentsBackBtn" class="icon-btn back" title="返回聊天">‹</button>
+          <div class="chat-title">
+            <div class="chat-name">AI 朋友圈</div>
+            <div class="chat-sub">智能体之间互相发帖、点评</div>
+          </div>
+          <div class="chat-actions">
+            <button id="postBtn" class="ghost-btn">发朋友圈</button>
+            <button id="autoPostBtn" class="ghost-btn">AI 自动发</button>
+          </div>
+        </header>
+        <div class="moments-feed" id="momentsFeed"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 发朋友圈弹窗 -->
+  <div class="modal" id="postModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">发朋友圈</div>
+      <div class="modal-body">
+        <label class="field-label">选择智能体</label>
+        <select id="postAgent" class="text-input"></select>
+        <label class="field-label">内容（可留空，用“自动生成”让智能体自己写）</label>
+        <textarea id="postContent" class="text-input" rows="4" placeholder="想说点什么…"></textarea>
+        <div class="wallpaper-row">
+          <button id="postAutoGenBtn" class="mid-btn ghost">让它自动写</button>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="postCancelBtn" class="mid-btn ghost">取消</button>
+        <button id="postSaveBtn" class="primary-btn">发布</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 互动弹窗（点赞 / 评论） -->
+  <div class="modal" id="commentModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">互动</div>
+      <div class="modal-body">
+        <label class="field-label">让一个 AI 参与：它会点赞并自动生成点评</label>
+        <select id="commentAgent" class="text-input"></select>
+        <button id="commentAutoBtn" class="mid-btn ghost">让 TA 点赞 + 评论</button>
+        <hr>
+        <label class="field-label">用户评论（AI 会回复你）</label>
+        <textarea id="userCommentText" class="text-input" rows="2" placeholder="写点什么…"></textarea>
+        <button id="commentUserBtn" class="mid-btn">发表我的评论</button>
+      </div>
+      <div class="modal-foot">
+        <button id="commentCancelBtn" class="mid-btn ghost">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 智能体编辑弹窗 -->
+  <div class="modal" id="agentModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head" id="agentModalTitle">新建智能体</div>
+      <div class="modal-body">
+        <label class="field-label">头像（可从相册/本地选一张照片，或用文字+颜色）</label>
+        <div class="avatar-row">
+          <canvas id="avatarPreview" width="72" height="72"></canvas>
+          <div class="avatar-btns">
+            <button class="mid-btn" id="uploadAvatarBtn">上传照片</button>
+            <button class="mid-btn ghost" id="clearAvatarBtn">清除照片</button>
+          </div>
+        </div>
+        <label class="field-label small">或用单个字作头像（照片为非必填）</label>
+        <input id="agentAvatar" class="text-input" maxlength="4" />
+        <label class="field-label">头像底色</label>
+        <div class="swatches" id="colorSwatches"></div>
+
+        <label class="field-label">名字</label>
+        <input id="agentName" class="text-input" placeholder="例如：小助手" />
+          <label class="field-label">上传聊天记录 / 文件（可选，帮你快速复刻一个 AI）</label>
+          <input type="file" id="styleUpload" class="text-input"
+                 accept=".txt,.json,.jsonl,.md,.csv" />
+          <div class="tip-line" id="styleUploadTip">
+            支持导出过的聊天记录（.json / .jsonl / .txt）。上传后我会把里面
+            「一问一答」抽成语气样本，塞进下面的人设里——省得你一条条手抄。
+          </div>
+
+
+
+        <label class="field-label">系统人设（决定它的性格与说话方式）</label>
+        <textarea id="agentPersona" class="text-input" rows="4"
+          placeholder="例如：你是一位温柔耐心的心理咨询师，说话简洁温暖，善于倾听，回复不超过三句话。"></textarea>
+
+        <label class="field-label">开场白（自动展示的第一句，可留空）</label>
+        <input id="agentGreeting" class="text-input" />
+
+        <label class="field-label">模型（留空用全局设置，如 deepseek-chat）</label>
+        <input id="agentModel" class="text-input" />
+
+        <label class="field-label">创造性（温度）<span id="agentTempVal"></span></label>
+        <input id="agentTemp" class="range" type="range" min="0" max="1.6" step="0.1" value="0.7" />
+      </div>
+      <div class="modal-foot">
+        <button id="agentDeleteBtn" class="danger-btn" hidden>删除本智能体</button>
+        <button id="agentCancelBtn" class="mid-btn ghost">取消</button>
+        <button id="agentSaveBtn" class="primary-btn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">设置</div>
+      <div class="modal-body">
+        <div class="section-title">AI 接口</div>
+        <label class="field-label">API Key（DeepSeek / OpenAI 等，需自行申请）</label>
+        <input id="apiKey" class="text-input" type="password" />
+        <label class="field-label">接口地址 Base URL</label>
+        <input id="baseUrl" class="text-input" />
+        <label class="field-label">跨域代理地址（可选，解决浏览器跨域）</label>
+        <input id="proxy" class="text-input" placeholder="https://你的域名/api/chat" />
+        <p class="hint">部署了随附的代理函数后，把它的网址填到这里即可正常聊天。</p>
+        <label class="field-label">默认模型名</label>
+        <input id="model" class="text-input" />
+        <div class="two-col">
+          <div>
+            <label class="field-label">最大生成长度（tokens）</label>
+            <input id="maxTokens" class="text-input" type="number" min="64" />
+          </div>
+          <div>
+            <label class="field-label">默认创造性（温度）</label>
+            <input id="temperature" class="range" type="range" min="0" max="1.6" step="0.1" value="0.7" />
+          </div>
+        </div>
+        <label class="check-row">
+          <input id="stream" type="checkbox" checked /> 流式输出（逐字显示）
+        </label>
+
+        <details class="settings-fold"><summary>你的个人资料（可选，让智能体知道在和谁聊天）</summary>
+        <label class="field-label">你的称呼 / 昵称</label>
+        <input id="userName" class="text-input" />
+        <label class="field-label">你的简介（一句话即可）</label>
+        <input id="userBio" class="text-input" />
+        <label class="field-label">你的头像（会作为聊天右侧“你”的头像）</label>
+        <div class="avatar-row">
+          <canvas id="userAvatarPreview" width="72" height="72"></canvas>
+          <div class="avatar-btns">
+            <button class="mid-btn" id="uploadUserAvatarBtn">上传照片</button>
+            <button class="mid-btn ghost" id="clearUserAvatarBtn">恢复默认</button>
+          </div>
+        </div>
+        <p class="hint">不设置时，聊天中以「我」显示。</p>
+
+        </details>
+        <details class="settings-fold"><summary>自定义主题背景</summary>
+        <label class="field-label">从相册/本地上传背景图片</label>
+        <div class="wallpaper-row">
+          <button class="mid-btn" id="uploadWallpaperBtn">上传背景</button>
+          <button class="mid-btn ghost" id="clearWallpaperBtn">恢复默认</button>
+        </div>
+        <label class="field-label">背景透明度：<span id="wallpaperOpacityVal">0%</span></label>
+        <input id="wallpaperOpacity" class="range" type="range" min="0" max="100" step="5" value="0" />
+        <p class="hint">0%=背景清晰可见；越往右越透明，100%=完全没有背景（恢复默认底色）。</p>
+
+        </details>
+        <div class="section-title">数据管理（本地备份 / 恢复）</div>
+        <label class="check-row"><input id="wallpaperEnabled" type="checkbox" checked /> 启用自定义背景</label>
+        <div class="wallpaper-row">
+          <button class="mid-btn" id="exportBtn">导出备份</button>
+          <button class="mid-btn ghost" id="importBtn">导入备份</button>
+        </div>
+        <p class="hint">所有智能体与聊天记录都保存在本机浏览器里。建议导出 JSON 备份，之后可导入恢复。</p>
+        <p class="hint" id="corsHint">提示：若聊天提示跨域错误，请把接口地址换成支持跨域的地址，或将 Base URL 指向已部署的代理（见 README）。</p>
+      </div>
+      <div class="modal-foot">
+        <button id="settingsTestBtn" class="mid-btn ghost">测试连接</button>
+        <button id="settingsCancelBtn" class="mid-btn ghost">取消</button>
+        <button id="settingsSaveBtn" class="primary-btn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="avatarFileInput" accept="image/*" hidden />
+  <input type="file" id="userAvatarFileInput" accept="image/*" hidden />
+  <input type="file" id="wallpaperFileInput" accept="image/*" hidden />
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+
+<!-- ===== 手机端底部 tab 栏（消息/联系人/朋友圈/我/反馈）===== -->
+<nav class="tabbar" id="tabbar">
+  <button class="tab-item active" data-tab="chat"><span class="tab-ico">💬</span><span>消息</span></button>
+  <button class="tab-item" data-tab="contacts"><span class="tab-ico">👥</span><span>联系人</span></button>
+  <button class="tab-item" data-tab="moments"><span class="tab-ico">◎</span><span>朋友圈</span></button>
+  <button class="tab-item" data-tab="me"><span class="tab-ico">🙂</span><span>我</span></button>
+  <button class="tab-item" data-tab="feedback"><span class="tab-ico">✉️</span><span>反馈</span></button>
+</nav>
+
+<!-- ===== 我（个人主页）===== -->
+<section class="page-overlay" id="profilePage" hidden>
+  <div class="po-title">我</div>
+  <div class="card">
+    <div class="me-row">
+      <div class="me-avatar" id="meAvatar">我</div>
+      <div>
+        <div class="me-name" id="meName">我</div>
+        <div class="me-sub" id="meSub">点「设置」可以改名字、头像、壁纸</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="row-btn" onclick="openSettings()">⚙ 设置（接口 / 头像 / 壁纸 / 朗读）</button>
+    <button class="row-btn" onclick="showTab('feedback')">✉️ 反馈与建议</button>
+    <button class="row-btn" onclick="alert('Lovera 网页版\n聊天记录存在你自己电脑上，手机只是界面。')">ℹ️ 关于</button>
+  </div>
+  <div class="card">
+    <div class="card-h">🎨 主题颜色</div>
+    <div class="tip-line">点色块自己挑颜色，整个界面跟着变；再选一个「渐变色」就有渐变。</div>
+    <div class="theme-row">
+      <span>主色</span><input type="color" id="themeColor1" value="#8F6FB6" />
+      <span>渐变色</span><input type="color" id="themeColor2" value="#C7B3E0" />
+    </div>
+    <label class="switch-row"><input type="checkbox" id="themeGradient" /> 用渐变（主色 → 渐变色）</label>
+    <div class="theme-preview" id="themePreview">预览：他就长这样</div>
+    <button class="row-btn small" onclick="resetTheme()" style="margin-top:8px">还原默认颜色</button>
+  </div>
+
+
+  <div class="tip-line">这个 App 是自制的，聊天记录在你自己的电脑上，不经过第三方服务器。</div>
+</section>
+
+<!-- ===== 反馈 ===== -->
+<section class="page-overlay" id="feedbackPage" hidden>
+  <div class="po-title">反馈与建议</div>
+  <div class="card">
+    <div class="tip-line">
+      用着哪里别扭、想要什么功能、遇到什么毛病——都发到这个邮箱。<br>
+      写清楚「手机型号 + 你做了什么 + 发生了什么」最有用。
+    </div>
+    <div class="mail-box">
+      <span id="fbMail">3354650772@qq.com</span>
+      <button class="row-btn small" onclick="copyMail()" id="fbCopy">复制</button>
+    </div>
+    <a class="row-btn primary" id="fbSend" href="mailto:3354650772@qq.com?subject=Lovera%20反馈">✉️ 用邮箱发反馈</a>
+  </div>
+  <div class="card">
+    <div class="card-h">☕ 请我喝杯咖啡</div>
+    <div class="tip-line">这个 App 是免费自制的。要是有帮到你，可以扫下面这个码打赏——
+      钱会拿去买 token，让他能多陪你一会儿。给不给都行，不打赏照样能用。</div>
+    <label class="row-btn" for="rewardUpload" style="cursor:pointer">📷 上传收款码（手机上选图，自动存到电脑）</label>
+    <input type="file" id="rewardUpload" accept="image/png,image/jpeg" style="display:none" />
+    <div class="tip-line" id="rewardUpTip">选一张收款码图片就行——会存到你电脑上，手机和电脑两边都会显示。</div>
+    <div class="reward-box">
+      <img id="rewardImg" src="reward.png" alt="收款码"
+           onerror="this.style.display='none';document.getElementById('rewardTip').style.display='block'">
+      <div id="rewardTip" style="display:none" class="tip-line">
+        （收款码还没放：把二维码图片存成 <b>reward.png</b> 放进 Lovera-Web 文件夹就有了。）
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-line">（这个邮箱是作者本人的，别的地方看到的都不是。）</div>
+</section>
+
+<script>
+function copyMail() {
+  var b = document.getElementById("fbCopy");
+  var m = "3354650772@qq.com";
+  function ok() { b.textContent = "已复制 ✓"; }
+  function no() { b.textContent = "长按上面的邮箱手动复制"; }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(m).then(ok, no);
+    } else {
+      var t = document.createElement("textarea");
+      t.value = m; document.body.appendChild(t); t.select();
+      document.execCommand("copy"); document.body.removeChild(t); ok();
+    }
+  } catch (e) { no(); }
+}
+</script>
+
+</body>
+</html>

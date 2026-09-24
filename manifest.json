@@ -1,0 +1,18 @@
+{
+  "id": "loveraai",
+  "name": "LoveraAI · 智能体聊天",
+  "short_name": "LoveraAI",
+  "description": "自己设定人设、上传头像与自定义主题背景的智能体聊天应用。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4EFF9",
+  "theme_color": "#8F6FB6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

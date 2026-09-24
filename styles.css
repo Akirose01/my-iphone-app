@@ -1,0 +1,635 @@
+:root {
+  --brand: #8F6FB6;
+  --brand-dark: #7A5AA0;
+  --brand-light: #C7B3E0;
+  --bg: #F4EFF9;
+  --bg2: #EFE7F6;
+  --sidebar: #EDE3F5;
+  --sidebar-sel: #DCCBE8;
+  --border: #D9CAE7;
+  --text: #4A3B5C;
+  --text-sub: #8A7A9E;
+  --user-bubble: #A98CD6;
+  --user-bubble-text: #FFFFFF;
+  --agent-bubble: #FFFFFF;
+  --agent-bubble-text: #3D2F4F;
+  --danger: #C96A6A;
+  --splash-top: #C4B1E6;
+  --splash-bottom: #ECE2F6;
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* 让 HTML 的 hidden 属性真正生效（覆盖 .modal 等 display 设置） */
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  color: var(--text);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* 壁纸层 */
+#wallpaper {
+  position: fixed; inset: 0; z-index: 0;
+  background: linear-gradient(160deg, var(--splash-top), var(--splash-bottom));
+  background-size: cover; background-position: center;
+  transition: background-image .4s ease;
+}
+
+#app { position: relative; z-index: 1; height: 100%; }
+
+/* 启动页（直接显示品牌封面图，与原图同风格） */
+.splash {
+  position: fixed; inset: 0; z-index: 50;
+  background-image: url('cover.png');
+  background-size: cover; background-position: center;
+  background-color: var(--splash-bottom);
+  transition: opacity .6s ease;
+}
+.splash.hide { opacity: 0; pointer-events: none; }
+
+/* 布局 */
+.layout { display: flex; height: 100%; }
+.sidebar {
+  width: 300px; min-width: 300px; display: flex; flex-direction: column;
+  background: rgba(237,227,245,.7); border-right: 1px solid var(--border);
+  transition: transform .3s ease;
+}
+.brand {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 16px 8px;
+}
+.brand-name { font-family: Georgia, serif; font-weight: 700; font-size: 22px; color: var(--brand-dark); }
+.icon-btn {
+  background: transparent; border: none; font-size: 20px; color: var(--brand-dark);
+  cursor: pointer; padding: 6px 10px; border-radius: 10px;
+}
+.icon-btn:hover { background: var(--sidebar-sel); }
+.primary-btn {
+  background: var(--brand); color: #fff; border: none; border-radius: 12px;
+  padding: 12px 14px; font-size: 15px; font-weight: 700; cursor: pointer;
+  margin: 4px 14px 10px; box-shadow: 0 2px 8px rgba(143,111,182,.3);
+}
+.primary-btn:hover { background: var(--brand-dark); }
+.agent-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.agent-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px; border-radius: 14px;
+  cursor: pointer; margin-bottom: 2px;
+}
+.agent-item:hover { background: rgba(255,255,255,.4); }
+.agent-item.active { background: var(--sidebar-sel); }
+.agent-item .texts { min-width: 0; }
+.agent-item .name { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-item .last { font-size: 12px; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty-list { color: var(--text-sub); text-align: center; padding: 40px 12px; font-size: 14px; line-height: 1.7; }
+
+/* 头像 */
+.avatar, .avatar-sm {
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; overflow: hidden; flex-shrink: 0;
+  background: #9678B4;
+}
+.avatar { width: 44px; height: 44px; font-size: 18px; }
+.avatar-sm { width: 40px; height: 40px; font-size: 16px; }
+.avatar img, .avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 聊天区 */
+.chatpane { flex: 1; display: flex; flex-direction: column; background: rgba(244,239,249,.5); }
+.chat-header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: rgba(248,243,251,.55); border-bottom: 1px solid var(--border);
+}
+.chat-title { flex: 1; min-width: 0; }
+.chat-name { font-size: 16px; font-weight: 700; }
+.chat-sub { font-size: 12px; color: var(--text-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-actions { display: flex; gap: 6px; }
+.ghost-btn {
+  background: transparent; color: var(--brand-dark); border: none; cursor: pointer;
+  border-radius: 8px; padding: 7px 10px; font-size: 13px;
+}
+.ghost-btn:hover { background: var(--bg2); }
+.back { display: none; font-size: 26px; }
+
+.messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.msg { display: flex; gap: 8px; max-width: 82%; }
+.msg .avatar { width: 38px; height: 38px; font-size: 15px; }
+.bubble {
+  padding: 10px 14px; border-radius: var(--radius); font-size: 15px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-word; max-width: 100%;
+}
+/* 聊天里的图片（电脑上发的，手机上也能看） */
+.msg-img {
+  display: block; max-width: 100%; max-height: 320px; width: auto; height: auto;
+  border-radius: 10px; margin: 0 0 8px 0; background: rgba(0,0,0,.05);
+}
+.msg-img:last-child { margin-bottom: 0; }
+
+/* 发图片按钮 */
+.img-btn {
+  flex: 0 0 auto; border: none; border-radius: 12px; cursor: pointer;
+  background: var(--brand-light, #B9A6D6); color: #fff; font-size: 18px;
+  padding: 0 12px; margin-right: 6px; align-self: stretch;
+}
+.img-btn:hover { filter: brightness(1.06); }
+.msg.agent { align-self: flex-start; }
+.msg.agent .bubble { background: var(--agent-bubble); color: var(--agent-bubble-text); border-top-left-radius: 6px; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg.user .bubble { background: var(--user-bubble); color: var(--user-bubble-text); border-top-right-radius: 6px; }
+.msg .time { font-size: 11px; color: var(--text-sub); align-self: flex-end; margin-top: 2px; }
+.time-gap { text-align: center; font-size: 11px; color: var(--text-sub); margin: 2px 0; }
+.msg.user .recall {
+  opacity: 0; border: none; background: none; color: var(--text-sub); font-size: 12px;
+  cursor: pointer; align-self: flex-end; margin: 0 2px 4px 4px; padding: 2px 4px; transition: opacity .15s;
+}
+.msg.user:hover .recall, .msg.user.show-recall .recall { opacity: 1; }
+.msg.recalled { align-self: center; max-width: 100%; }
+.recall-notice { text-align: center; color: var(--text-sub); font-size: 12px; padding: 4px 0; }
+.typing .bubble::after { content: "…"; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* 输入区 */
+.composer { position: relative; padding: 10px 14px; background: rgba(239,231,246,.65); border-top: 1px solid var(--border); display: flex; align-items: flex-end; gap: 8px; }
+.composer textarea {
+  flex: 1; resize: none; border: 1px solid var(--border); border-radius: 14px;
+  padding: 10px 12px; font-size: 15px; font-family: inherit; color: var(--text);
+  background: #fff; max-height: 120px;
+}
+.composer textarea:focus { outline: none; border-color: var(--brand-light); }
+.send-btn, .stop-btn {
+  border: none; border-radius: 12px; padding: 12px 18px; font-size: 15px; font-weight: 700;
+  cursor: pointer; color: #fff;
+}
+.send-btn { background: var(--brand); }
+.send-btn:hover { background: var(--brand-dark); }
+.stop-btn { background: var(--danger); }
+.composer-hint { position: absolute; bottom: 2px; left: 20px; font-size: 10px; color: var(--text-sub); pointer-events: none; }
+
+/* 弹窗 */
+.modal {
+  position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: rgba(60,44,80,.45); padding: 16px; overflow-y: auto;
+}
+.modal-card {
+  background: #fff; border-radius: 20px; width: 460px; max-width: 100%; max-height: 92vh;
+  display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(60,44,80,.3);
+}
+.modal-head { padding: 18px 20px 8px; font-size: 18px; font-weight: 700; color: var(--brand-dark); }
+.modal-body { padding: 8px 20px; overflow-y: auto; }
+.modal-foot { padding: 16px 20px; display: flex; gap: 8px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--bg2); }
+.section-title { font-weight: 700; color: var(--brand-dark); margin: 16px 0 4px; }
+.field-label { display: block; font-size: 13px; color: var(--text); margin: 10px 0 4px; font-weight: 600; }
+.field-label.small { font-size: 12px; color: var(--text-sub); font-weight: 400; }
+.text-input {
+  width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; font-family: inherit; color: var(--text); background: #fff;
+}
+.text-input:focus { outline: none; border-color: var(--brand-light); }
+.range { width: 100%; accent-color: var(--brand); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.check-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 12px 0; color: var(--text); accent-color: var(--brand); }
+.avatar-row { display: flex; align-items: center; gap: 14px; margin: 4px 0; }
+#avatarPreview { border-radius: 50%; border: 1px solid var(--border); background: #fff; }
+.avatar-btns { display: flex; flex-direction: column; gap: 6px; }
+.wallpaper-row { display: flex; gap: 10px; margin: 6px 0; }
+.mid-btn {
+  background: var(--brand-light); color: #fff; border: none; border-radius: 10px;
+  padding: 8px 14px; font-size: 13px; cursor: pointer; font-weight: 600;
+}
+.mid-btn.ghost { background: var(--bg2); color: var(--text); }
+.mid-btn:hover { filter: brightness(1.05); }
+.ghost { background: var(--bg2); color: var(--text) !important; }
+.danger-btn { background: transparent; color: var(--danger); border: none; cursor: pointer; font-size: 14px; margin-right: auto; }
+.swatches { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0; }
+.swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+.swatch.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--brand); }
+.hint { font-size: 12px; color: var(--text-sub); margin: 4px 0; line-height: 1.5; }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+  background: rgba(60,44,80,.92); color: #fff; padding: 12px 18px; border-radius: 12px;
+  font-size: 14px; max-width: 86vw; text-align: center; transition: opacity .3s;
+}
+
+/* 手机端 */
+@media (max-width: 720px) {
+  .sidebar {
+    position: absolute; top: 0; bottom: 0; left: 0; z-index: 20;
+    transform: translateX(-100%); box-shadow: 2px 0 14px rgba(60,44,80,.2);
+    width: 280px; min-width: 280px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .back { display: block; }
+  .chat-header { padding-left: 10px; }
+  .splash-logo { font-size: 46px; }
+  .splash-logo .big { font-size: 70px; }
+  .messages { padding: 12px; }
+  .modal-card { max-height: 90vh; }
+  .two-col { grid-template-columns: 1fr; }
+}
+
+/* 批量删除 */
+.side-tools { display: flex; gap: 8px; padding: 0 14px 8px; }
+.side-tools .mid-btn { flex: 1; padding: 7px 8px; font-size: 13px; }
+.agent-item .selbox { width: 18px; height: 18px; accent-color: var(--brand); align-self: center; }
+.agent-item.active .selbox { background: var(--brand); }
+
+/* 消息操作按钮（重说/继续） */
+.msg-actions { display: flex; gap: 6px; align-self: flex-start; margin-top: 4px; }
+.act-btn {
+  border: none; background: rgba(255,255,255,.7); color: var(--brand-dark);
+  font-size: 12px; padding: 3px 10px; border-radius: 20px; cursor: pointer;
+}
+.act-btn:hover { background: var(--brand-light); color: #fff; }
+
+/* 朋友圈 */
+.moments { flex: 1; display: flex; flex-direction: column; background: rgba(244,239,249,.5); }
+.moments-header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: rgba(248,243,251,.55); border-bottom: 1px solid var(--border);
+}
+.moments-feed { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.post {
+  background: rgba(255,255,255,.75); border-radius: 16px; padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(60,44,80,.08);
+}
+.post-head { display: flex; align-items: center; gap: 10px; }
+.post-meta { flex: 1; min-width: 0; }
+.post-name { font-weight: 700; font-size: 14px; }
+.post-time { font-size: 11px; color: var(--text-sub); }
+.post-comment { flex-shrink: 0; }
+.post-content { margin: 10px 0; font-size: 15px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.post-comments { border-left: 3px solid var(--brand-light); padding-left: 12px; margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.comment { font-size: 13px; color: var(--text); line-height: 1.5; }
+.comment b { color: var(--brand-dark); }
+
+/* ===== 手机端底部 tab 栏 ===== */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+  display: flex; background: #fff; border-top: 1px solid #E6E0EE;
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px)) 0;
+}
+.tab-item {
+  flex: 1; border: 0; background: none; color: #8A8095;
+  font-size: 11px; line-height: 1.35; padding: 6px 0 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.tab-item .tab-ico { font-size: 19px; }
+.tab-item.active { color: #8F6FB6; font-weight: 600; }
+body.tabbed .layout { padding-bottom: 62px; }
+body.tabbed .messages { padding-bottom: 8px; }
+
+/* ===== 全屏覆盖页（我 / 反馈）===== */
+.page-overlay {
+  position: fixed; left: 0; right: 0; top: 0; bottom: 62px; z-index: 70;
+  background: #F4EFF9; overflow-y: auto; padding: 14px 14px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.po-title { font-size: 19px; font-weight: 700; color: #6B4E8F; margin: 4px 0 12px; }
+.page-overlay .card {
+  background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px;
+  box-shadow: 0 2px 10px rgba(90,60,120,.08);
+}
+.me-row { display: flex; align-items: center; gap: 12px; }
+.me-avatar {
+  width: 54px; height: 54px; border-radius: 50%; background: #9678B4; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  overflow: hidden;
+}
+.me-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.me-name { font-size: 17px; font-weight: 600; color: #2B2233; }
+.me-sub { font-size: 12px; color: #8A8095; margin-top: 2px; }
+.row-btn {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  padding: 13px 4px; font-size: 15px; color: #2B2233; text-decoration: none;
+  border-bottom: 1px solid #F0ECF5;
+}
+.row-btn:last-child { border-bottom: 0; }
+.row-btn.primary { background: #8F6FB6; color: #fff; border-radius: 12px; text-align: center; margin-top: 8px; border-bottom: 0; }
+.row-btn.small { display: inline-block; width: auto; padding: 6px 12px; background: #EFE8F7; border-radius: 10px; font-size: 13px; border-bottom: 0; }
+.tip-line { font-size: 12.5px; color: #7A7186; line-height: 1.7; margin: 6px 2px 10px; }
+.mail-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: #F7F3FC; border-radius: 12px; padding: 11px 12px; margin: 6px 0;
+  font-size: 15px; color: #2B2233; word-break: break-all;
+}
+
+/* ===== 主题色 / 打赏 / 上传（新增块）===== */
+.card-h { font-size: 15px; font-weight: 700; color: #6B4E8F; margin-bottom: 6px; }
+.theme-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; font-size: 14px; color: #4A3B5C; }
+.theme-row input[type=color] {
+  width: 46px; height: 34px; border: 1px solid #D9CAE7; border-radius: 9px;
+  background: none; padding: 2px;
+}
+.switch-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #4A3B5C; margin: 6px 0; }
+.theme-preview {
+  margin-top: 8px; padding: 10px 12px; border-radius: 12px; color: #fff; font-size: 13.5px;
+  background: var(--brand);
+}
+.reward-box { text-align: center; margin-top: 8px; }
+.reward-box img { max-width: 220px; width: 70%; border-radius: 12px; border: 1px solid #E6E0EE; }
+#styleUpload { padding: 8px 10px; font-size: 13px; }
+
+/* ===== DeepSeek 式排版：AI 的话整条铺开、无气泡 ===== */
+.msg.agent { max-width: 100%; width: 100%; }
+.msg.agent .bubble.md {
+  background: transparent; color: var(--text);
+  padding: 2px 0 6px; border-radius: 0; box-shadow: none;
+  line-height: 1.78; font-size: 15px; word-break: break-word;
+}
+.msg.agent .bubble.md p { margin: 0 0 8px; }
+.bubble.md h1, .bubble.md h2, .bubble.md h3, .bubble.md h4 {
+  margin: 14px 0 6px; font-weight: 700; line-height: 1.4;
+}
+.bubble.md h1 { font-size: 19px; }
+.bubble.md h2 { font-size: 17px; }
+.bubble.md h3 { font-size: 16px; }
+.bubble.md ul { margin: 6px 0 10px; padding-left: 22px; }
+.bubble.md li { margin: 3px 0; }
+.bubble.md blockquote {
+  margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--brand-light);
+  background: var(--bg2); border-radius: 0 8px 8px 0; color: var(--text-sub);
+}
+.bubble.md .md-code {
+  font-family: Consolas, Menlo, monospace; font-size: 13.5px;
+  background: var(--bg2); padding: 1.5px 5px; border-radius: 5px;
+}
+.bubble.md .md-pre {
+  background: #2B2233; color: #F2ECFA; border-radius: 10px;
+  padding: 11px 13px; overflow-x: auto; margin: 9px 0;
+}
+.bubble.md .md-pre code {
+  font-family: Consolas, Menlo, monospace; font-size: 13.5px;
+  background: none; color: inherit; white-space: pre;
+}
+.bubble.md a { color: var(--brand); text-decoration: underline; }
+.bubble.md strong { font-weight: 700; }
+/* 我自己的话：右侧气泡照旧 */
+.msg.user .bubble.mine { white-space: pre-wrap; }
+
+/* ===== 渲染器美化：代码块工具条 / 表格 / 分隔线 ===== */
+.bubble.md .md-block { margin: 10px 0; border-radius: 10px; overflow: hidden; background: #2B2233; }
+.bubble.md .md-block-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 10px; background: #241C2C; color: #B9A9CE;
+  font-size: 11.5px; font-family: Consolas, Menlo, monospace;
+}
+.bubble.md .md-copy {
+  border: 1px solid #4A3B5C; background: transparent; color: #D8C9EC;
+  border-radius: 7px; padding: 2px 9px; font-size: 11.5px; cursor: pointer;
+}
+.bubble.md .md-copy:active { background: #4A3B5C; }
+.bubble.md .md-block .md-pre { margin: 0; border-radius: 0; }
+.bubble.md .md-table {
+  border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px;
+}
+.bubble.md .md-table th, .bubble.md .md-table td {
+  border: 1px solid var(--border); padding: 6px 9px; text-align: left;
+}
+.bubble.md .md-table th { background: var(--bg2); font-weight: 700; }
+.bubble.md hr { border: 0; border-top: 1px solid var(--border); margin: 14px 0; }
+.bubble.md del { color: var(--text-sub); }
+
+/* ===== 新手引导卡 ===== */
+.first-guide {
+  margin: 10px 2px 16px; padding: 13px 14px; border-radius: 14px;
+  background: #fff; border: 1px solid var(--border);
+  box-shadow: 0 2px 10px rgba(90,60,120,.08);
+}
+.first-guide .fg-title { font-size: 16px; font-weight: 700; color: var(--brand-dark); margin-bottom: 4px; }
+.first-guide .fg-sub { font-size: 13px; color: var(--text-sub); line-height: 1.7; margin-bottom: 8px; }
+.first-guide .fg-steps { margin: 6px 0 8px; padding-left: 20px; font-size: 14px; line-height: 1.85; color: var(--text); }
+.first-guide .fg-steps a { color: var(--brand); }
+.first-guide .fg-warn { font-size: 12.5px; color: #B03A3A; line-height: 1.7; margin-bottom: 10px; }
+.first-guide .fg-ok {
+  width: 100%; border: 0; border-radius: 11px; padding: 11px;
+  background: var(--brand); color: #fff; font-size: 14.5px;
+}
+
+/* ===== 手机端：顶部栏太挤，「编辑 / 清空」被挤出屏幕 ===== */
+@media (max-width: 720px) {
+  .chat-header {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    row-gap: 4px !important;
+    padding: 8px 10px !important;
+  }
+  .chat-header > div, .chat-header > span { min-width: 0 !important; }
+  .chat-header .name, .chat-header .chat-name, .chat-header h1, .chat-header h2 {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1 1 auto; min-width: 0;
+  }
+  .chat-header button, .chat-header .icon-btn, .chat-header a.btn {
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+  }
+  .chat-header img, .chat-header .avatar { flex: 0 0 auto; }
+}
+
+/* ===== 手机端：让内容用满屏宽（少一圈白边）===== */
+@media (max-width: 720px) {
+  .layout { padding-left: 0 !important; padding-right: 0 !important; }
+  .messages { padding-left: 10px !important; padding-right: 10px !important; }
+  .msg.agent { max-width: 100% !important; width: 100% !important; }
+}
+
+/* ===== 手机上：编辑/清空 收进三条杠 ===== */
+.hdr-burger {
+  flex: 0 0 auto; border: 0; background: transparent; color: inherit;
+  font-size: 20px; line-height: 1; padding: 6px 8px; border-radius: 8px;
+}
+.hdr-burger:active { background: rgba(255,255,255,.25); }
+.hdr-menu-pop {
+  position: absolute; right: 8px; top: 100%; z-index: 60;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(60,40,90,.18); padding: 4px; min-width: 110px;
+}
+.hdr-menu-pop button {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  padding: 10px 14px; font-size: 15px; color: var(--text); border-radius: 8px;
+}
+.hdr-menu-pop button:active { background: var(--bg2); }
+.chat-header { position: relative; overflow: visible !important; }
+
+/* ===== 手机端：发送框瘦身 + 消息区抢回空间 ===== */
+@media (max-width: 720px) {
+  /* 消息区必须能滚动、能占满剩余高度（不加 min-height:0 就会被顶开） */
+  .messages { min-height: 0 !important; flex: 1 1 auto !important; overflow-y: auto !important; }
+  body.tabbed .layout { padding-bottom: 54px !important; }
+  /* 输入区矮一点 */
+  .composer, .input-bar { padding: 6px 8px !important; }
+  .composer textarea, .input-bar textarea, #input {
+    max-height: 96px !important; min-height: 38px !important;
+  }
+}
+.cmp-plus {
+  flex: 0 0 auto; border: 0; border-radius: 50%;
+  width: 40px; height: 40px; font-size: 20px; line-height: 1;
+  background: var(--bg2); color: var(--brand-dark);
+}
+.cmp-plus:active { background: var(--border); }
+.cmp-menu {
+  position: absolute; right: 8px; bottom: 56px; z-index: 70;
+  background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(60,40,90,.18); padding: 4px; min-width: 130px;
+}
+.cmp-menu button {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  padding: 11px 14px; font-size: 15px; color: var(--text); border-radius: 8px;
+}
+.cmp-menu button:active { background: var(--bg2); }
+
+/* ==== LoveraAI 网页版打包补丁（自动追加，别手改这一块） ==== */
+/* ① .modal-card 是竖排 flex，而滚动区 .modal-body 少了 flex/min-height:0 ——
+      它不肯缩，就把 .modal-foot（保存 / 测试连接 / 取消）顶出卡片、顶出屏幕，
+      用户点不到按钮。这是"设置弹窗太长、底下被挡住"的原因之一。 */
+.modal-card { display: flex !important; flex-direction: column !important; }
+.modal-body { flex: 1 1 auto !important; min-height: 0 !important;
+  overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+.modal-head, .modal-foot { flex: 0 0 auto !important; }
+.modal { padding: 12px !important; max-height: 100vh; }
+/* ② 弹窗高度绝对不能用 vh 算（这是手机上的真原因）：软键盘弹出时视口变矮了，
+      但 vh 还按整屏算 → 卡片照样按整屏排版 → 底部那排按钮排到可见区外面，点不到。
+      100% 跟着 .modal（fixed + 四边 0）走，它会随键盘缩。 */
+.modal-card { max-height: 100% !important; height: auto !important; }
+/* ③ inset:0 在 Chrome 87 以下 / 老 Safari 不认，弹窗会跑到屏幕外面去 */
+.modal { top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; }
+/* ④ 折叠区块：把不常用的设置收起来，弹窗短一截 */
+details.settings-fold { margin: 10px 0 2px; border-top: 1px solid #EFE7F6; padding-top: 6px; }
+details.settings-fold > summary { cursor: pointer; font-weight: 700; color: #6B4E8F;
+  font-size: 14px; padding: 6px 0; }
+details.settings-fold[open] > summary { margin-bottom: 2px; }
+/* ⑤ 弹窗层级：源码里 .modal 是 z-index:40，而底部标签栏是 80、「我/反馈」整页是 70 ——
+      弹窗被压在下面，底部那排按钮正好被标签栏吃掉半截，点了没反应（跟 APK 上一样的病）。 */
+.modal { z-index: 90 !important; }
+/* ⑥ 提示条：原来固定在 bottom:24px、层级 60，弹出那几秒正好压住发送键；
+      挪到屏幕上方，并且不拦点击。 */
+.toast { top: 14px !important; bottom: auto !important; z-index: 9998 !important;
+  max-width: 92vw !important; pointer-events: none !important; }
+/* ⑦ 矮屏幕上（横屏、小屏机）让卡片能贴着屏幕上边、不居中溢出 */
+@media (max-height: 560px) { .modal { align-items: flex-start !important; } }
+
+/* ⑧ 微信式宽气泡（共用 ui_bubbles.css，见文件头的说明） */
+/* =====================================================================
+ *  微信式宽气泡 —— 网页版和 APK **共用这一份**（别两边各写一份，会越走越远）
+ *
+ *  用户的原话："手机聊天气泡能不能做成这样的，原来的气泡太窄了，看着不习惯"
+ *  实测（393px 屏，改之前）：
+ *      我 14 字  → 气泡 186px（占 47%）
+ *      我 52 字  → 气泡 192px（占 49%）折成 6 行，像一根细高柱
+ *      微信截图里同样的长消息：气泡占屏宽约 72%
+ *
+ *  为什么这么窄？一行里横着排了 5 个东西：
+ *      头像(38) · 气泡 · 朗读/重说/继续(≈40-110) · 撤回(46) · 时间(≈34)
+ *  后面三个都不该占宽度（朗读是点缀、撤回是长按才出来的、时间是附注），
+ *  但它们都是 flex 子项，硬吃了 120-190px。
+ *  所以这里把它们全部改成绝对定位，气泡就能铺开了。
+ * ===================================================================== */
+
+/* ── 1. 行：只留「头像 + 气泡」在排版里 ─────────────────────────────── */
+.messages { gap: 18px !important; }
+.msg { position: relative !important; gap: 6px !important; max-width: 84% !important; }
+/* AI 那边本来是"整条铺开、无气泡"的 DeepSeek 样式（width:100%），
+   现在也要气泡，所以改回按内容宽度 + 留出右边距 */
+.msg.agent { max-width: 86% !important; width: auto !important; align-self: flex-start !important; }
+.msg .avatar, .msg .avatar-sm { flex: 0 0 auto !important; }
+
+/* ── 2. 气泡样子：微信那种「宽、圆角小、行距紧」───────────────────── */
+.msg .bubble {
+  min-width: 0 !important;
+  border-radius: 9px !important;
+  padding: 9px 13px !important;
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+/* 挨着头像的那个角收小一点：微信气泡的"小尾巴"就是靠这个角做出来的 */
+.msg.agent .bubble { border-top-left-radius: 3px !important; }
+.msg.user .bubble { border-top-right-radius: 3px !important; }
+
+/* ── 3. AI 那边也套气泡（颜色仍然用她自己的主题变量）───────────────── */
+.msg.agent .bubble.md {
+  background: var(--agent-bubble, #fff) !important;
+  color: var(--agent-bubble-text, #3D2F4F) !important;
+  padding: 10px 13px !important;
+  border-radius: 9px !important;
+  border-top-left-radius: 3px !important;
+  line-height: 1.62 !important;
+}
+.msg.agent .bubble.md > :first-child { margin-top: 0 !important; }
+.msg.agent .bubble.md > :last-child { margin-bottom: 0 !important; }
+
+/* ── 4. 时间：放进气泡右下角（Telegram 那种），不占宽度也不会和按钮打架 ──
+   第一版把时间放在气泡下面那条，结果和"朗读 🔊"叠在一起（截图里就是 16:1🔊）。 */
+.msg .bubble { padding-bottom: 21px !important; }
+.msg .time {
+  position: absolute !important; left: auto !important;
+  bottom: 4px !important; font-size: 10px !important; white-space: nowrap !important;
+  opacity: .75 !important;
+}
+/* 时间是气泡的**兄弟节点**（不是子节点），所以只能用行的边距去贴近气泡的内角：
+   AI 行是普通排列 → 气泡贴行的右边 → right:8px 就在气泡里；
+   我 行是 row-reverse → 气泡在头像左边 → 要再退 44px（头像 38 + 间隙 6）才落到气泡内角。 */
+.msg.agent .time { right: 8px !important; }
+.msg.user .time { right: 52px !important; }
+/* ── 5. 朗读 / 重说 / 继续：挪到气泡下面，不再占宽度 ──────────────────
+   -24px 是量出来的：按钮高 ≈ 22px，再往上就会盖住气泡右下角那个时间戳。
+   flex-wrap:nowrap 也是必须的：短消息时整行只有 ~158px 宽，"绝对定位 + left:44px"
+   拿到的可用宽度只剩 ~114px，三个按钮就会折成两行、高度翻倍、又盖住时间戳。 */
+.msg.agent .msg-actions {
+  position: absolute !important; left: 44px !important; right: auto !important;
+  bottom: -24px !important; margin: 0 !important;
+  flex-wrap: nowrap !important; white-space: nowrap !important;
+}
+/* ── 6. 撤回：长按才出现的小按钮，放在气泡下面靠头像那一侧 ──────────── */
+.msg.user .recall {
+  position: absolute !important; right: 44px !important; bottom: -30px !important;
+  z-index: 6 !important;
+}
+/* 撤回按钮露出来时要压在下一行上面 */
+.msg.show-recall, .msg.user.show-recall { z-index: 7 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   老内核兜底：flex 的 gap 是 Chrome 84（2020）才有的
+
+   试用者的手机是 Chrome 68 —— 在它上面所有 gap: Npx 都是**无效声明**，
+   后果：消息行挨着行、头像贴着气泡、输入框贴着发送键、设置底部三个按钮粘一起。
+   垫片会实测一次 flex gap 支不支持，不支持就给 <html> 挂上 .nogap，
+   下面这些规则才生效（新内核完全不受影响，一行都不会命中）。
+
+   为什么用 margin 补：margin 从 IE 时代就有，新老内核表现完全一致。
+   ═══════════════════════════════════════════════════════════════════════ */
+.nogap .messages { gap: 0 !important; }
+.nogap .messages > * + * { margin-top: 18px !important; }
+.nogap .msg { gap: 0 !important; }
+.nogap .msg.agent > .bubble { margin-left: 6px !important; }
+.nogap .msg.user > .bubble { margin-right: 6px !important; }
+.nogap .msg-actions { gap: 0 !important; }
+.nogap .msg-actions .act-btn + .act-btn { margin-left: 6px !important; }
+.nogap .composer { gap: 0 !important; }
+.nogap .composer > * + * { margin-left: 8px !important; }
+.nogap .modal-foot { gap: 0 !important; }
+.nogap .modal-foot > * + * { margin-left: 8px !important; }
+.nogap .chat-header { gap: 0 !important; }
+.nogap .chat-header > * + * { margin-left: 10px !important; }
+.nogap .moments-feed { gap: 0 !important; }
+.nogap .moments-feed > * + * { margin-top: 14px !important; }
+.nogap .agent-item { gap: 0 !important; }
+.nogap .agent-item > * + * { margin-left: 12px !important; }
+.nogap .me-row, .nogap .avatar-row { gap: 0 !important; }
+.nogap .me-row > * + * { margin-left: 12px !important; }
+.nogap .avatar-row > * + * { margin-left: 14px !important; }
+.nogap .check-row, .nogap .switch-row { gap: 0 !important; }
+.nogap .check-row > * + *, .nogap .switch-row > * + * { margin-left: 8px !important; }
+.nogap .side-tools { gap: 0 !important; }
+.nogap .side-tools > * + * { margin-left: 8px !important; }
+.nogap .chat-actions, .nogap .wallpaper-row, .nogap .post-head { gap: 0 !important; }
+.nogap .chat-actions > * + * { margin-left: 6px !important; }
+.nogap .wallpaper-row > * + * { margin-left: 10px !important; }
+.nogap .post-head > * + * { margin-left: 10px !important; }
+.nogap .post-comments { gap: 0 !important; }
+.nogap .post-comments > * + * { margin-top: 6px !important; }
+.nogap .tab-item { gap: 0 !important; }
+.nogap .tab-item > * + * { margin-top: 2px !important; }
+
